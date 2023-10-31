@@ -55,7 +55,7 @@ class Beam(pg.sprite.Sprite):
         self.rect.centerx = tank.x + tank.image.get_width()/2
         self.rect.centery = tank.y
         self.speed = 10
-
+##ビームの座標についての設定
 
     def update(self):
         """
@@ -99,7 +99,7 @@ def main():
         if keys[pg.K_d]:
             tank.move_right(10, 600)
 
-        if frame_count % 10 == 0:
+        if frame_count % 10 == 0:#ビーム自動発射
             beams.add(Beam(tank, angle=90))
 
         screen.blit(bg_img, [0, 0])
