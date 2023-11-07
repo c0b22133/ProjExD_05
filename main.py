@@ -57,6 +57,7 @@ class Beam(pg.sprite.Sprite):
         self.speed = 10
 ##ビームの座標についての設定
 
+
     def update(self):
         """
         ビームを速度ベクトルself.vx, self.vyに基づき移動させる
