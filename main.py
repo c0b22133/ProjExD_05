@@ -1,5 +1,7 @@
+
 import sys
 import pygame as pg
+
 import random
 import time
 
@@ -55,23 +57,31 @@ class Enemy(pg.sprite.Sprite):
 
 
 
+
 def main():
     pg.display.set_caption("弾幕ゲー")
     screen = pg.display.set_mode((600, 600))
     clock = pg.time.Clock()
 
     bg_img = pg.image.load("ex05/fig/background.png")
+
+    tank = Tank(300, 500, "ex05/fig/player1.gif")
+    sheild = pg.sprite.Group()
+
     tank_img = pg.image.load("ex05/fig/player1.gif")
     emys = pg.sprite.Group()
+
 
     tmr = 0
     x = 300  # タンクの初期 x 座標
     y = 500  # タンクの初期 y 座標
 
+
     obstacles = [] # 障害物のリスト
     next_obstacle_time = time.time() + random.randint(1, 3) # 障害物を生成する時刻
 
     count = 0
+
     while True:
         for event in pg.event.get():
             if event.type == pg.QUIT:
@@ -81,13 +91,13 @@ def main():
 
         keys = pg.key.get_pressed()
         if keys[pg.K_a]:
-            x -= 10  # 左に移動
-            if x < 0:  # 画面の左端を超えないように
-                x = 0
+            tank.move_left(10, 0)
         if keys[pg.K_d]:
-            x += 10  # 右に移動
-            if x > 600 - tank_img.get_width():
-                x = 600 - tank_img.get_width()
+            tank.move_right(10, 600)
+
+        if event.type == pg.KEYDOWN:
+            if event.key == pg.K_TAB :
+                    sheild.add(Shield(tank, 100, 300))
 
 
         if count < 5:
@@ -96,6 +106,8 @@ def main():
 
         screen.blit(bg_img, [0, 0])
         screen.blit(tank_img, [x, y])
+
+        pg.display.update()
 
         # 障害物を生成
         if time.time() > next_obstacle_time and len(obstacles) < 5:
@@ -113,7 +125,9 @@ def main():
         pg.display.update()
         count+=1
         tmr += 1
+
         clock.tick(100)
+
 
 if __name__ == "__main__":
     pg.init()
