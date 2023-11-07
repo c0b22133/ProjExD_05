@@ -114,6 +114,7 @@ def main():
         frame_count += 1
         clock.tick(100)
 
+
 if __name__ == "__main__":
     pg.init()
     main()
