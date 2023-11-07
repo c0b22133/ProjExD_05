@@ -1,8 +1,10 @@
+
 import sys
 import pygame as pg
 import time
 import random
 
+colors = [(255, 0, 0), (255, 127, 0), (255, 255, 0), (0, 255, 0), (0, 0, 255), (75, 0, 130), (143, 0, 255)]
 
 class Tank:
     def __init__(self, x,y, image_path):
@@ -51,6 +53,8 @@ class Shield(pg.sprite.Sprite):
         if self.life < 0:
             self.kill()
 
+        
+
 
 def main():
     pg.display.set_caption("弾幕ゲー")
@@ -63,6 +67,9 @@ def main():
 
     obstacles = []
     next_obstacle_time = time.time() + random.randint(1, 3)
+
+    rainbow_color_index = 0
+    rainbow_color_change_time = 0.1
 
     while True:
         for event in pg.event.get():
@@ -80,6 +87,17 @@ def main():
                     sheild.add(Shield(tank, 100, 300))
 
         screen.blit(bg_img, [0, 0])
+
+        rainbow_color = colors[rainbow_color_index]
+        pg.draw.circle(screen, rainbow_color, (tank.x + tank.image.get_width() / 2, tank.y), 50)
+        tank.draw(screen)
+
+        # 虹色の色を変更
+        current_time = time.time()
+        if current_time - rainbow_color_change_time > 0.1:
+            rainbow_color_index = (rainbow_color_index + 1) % len(colors)
+            rainbow_color_change_time = current_time
+
         tank.draw(screen)
 
         sheild.update()
