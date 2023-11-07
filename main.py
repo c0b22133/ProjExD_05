@@ -153,7 +153,8 @@ class Obstacle(pg.sprite.Sprite):  # pg.sprite.Sprite を継承する
         self.image = pg.Surface((width, height))
         self.image.fill((126, 126, 126))  # 障害物の色を灰色に設定
         self.rect = self.image.get_rect(topleft=(x, y))
-        self.durability = 50 # 耐久値を設定
+        self.durability = 20  # 耐久値を設定
+        self.created_time = time.time()
 
     def is_expired(self, duration):
         '''
@@ -183,7 +184,7 @@ class Score:
 
     def score_up(self, add):
         self.score += add
-    
+
     def update(self, screen: pg.Surface):
         self.image = self.font.render(f"Score: {self.score}", 0, self.color)
         screen.blit(self.image, self.rect)
@@ -228,6 +229,7 @@ def main():
     shields = Group()
     score = Score()
     obstacles = []  # 障害物のリスト
+    obstacles = pg.sprite.Group()
 
     next_obstacle_time = time.time() + random.randint(1, 3)  # 障害物を生成する時刻
 
@@ -235,9 +237,6 @@ def main():
 
     while True:
         screen.blit(bg_img, [0, 0])  # 背景画像を最初に描画
-        pg.font.init()  # フォントの初期化
-        game_over_font = pg.font.Font(None, 74)
-        obstacles = pg.sprite.Group()
         for event in pg.event.get():
             if event.type == pg.QUIT:
                 pg.quit()
@@ -269,7 +268,7 @@ def main():
         # 障害物の更新と描画
         for obstacle in obstacles:
             obstacle.update()
-        obstacles.draw(screen)  # 障害物の描画
+        obstacles.draw(screen)
 
         frame_count += 1
         tank.draw(screen)
@@ -286,7 +285,6 @@ def main():
 
         # ビームとエネミーの衝突判定
         beam_enemy_collisions = pg.sprite.groupcollide(beams, emys, True, True) and score.score_up(1)
-        
 
         # 障害物と小球の衝突判定
         for obstacle in obstacles:
