@@ -57,7 +57,7 @@ def add_spiral_balls(group, center):
 
 # Enemy クラス
 class Enemy(pg.sprite.Sprite):
-    imgs = [pg.image.load(f"ex05/fig/alien{i}.png") for i in range(1, 3)]
+    imgs = [pg.image.load(f"test/fig/alien{i}.png") for i in range(1, 3)]
 
     def __init__(self, all_sprites_group):
         super().__init__()
@@ -100,25 +100,26 @@ class Enemy(pg.sprite.Sprite):
         self.created_time = time.time()
 
 
-class Tank:
+class Tank(pg.sprite.Sprite):
     def __init__(self, x, y, image_path):
-        self.x = x
-        self.y = y
+        super().__init__()
         self.image = pg.image.load(image_path)
-        self.width = self.image.get_width()
+        self.rect = self.image.get_rect()
+        self.rect.x = x
+        self.rect.y = y
 
     def move_left(self, distance, min_x):
-        self.x -= distance
-        if self.x < min_x:
-            self.x = min_x
+        self.rect.x -= distance
+        if self.rect.x < min_x:
+            self.rect.x = min_x
 
     def move_right(self, distance, max_x):
-        self.x += distance
-        if self.x > max_x - self.width:
-            self.x = max_x - self.width
+        self.rect.x += distance
+        if self.rect.x > max_x - self.rect.width:
+            self.rect.x = max_x - self.rect.width
 
     def draw(self, screen):
-        screen.blit(self.image, [self.x, self.y])
+        screen.blit(self.image, self.rect)
 
 
 class Beam(pg.sprite.Sprite):
@@ -127,13 +128,14 @@ class Beam(pg.sprite.Sprite):
     """
     def __init__(self, tank: Tank, angle: float):
         super().__init__()
-        self.image = pg.transform.rotozoom(pg.image.load(f"ex05/fig/beam.png"), angle, 2.0)
+        self.image = pg.transform.rotozoom(pg.image.load(f"test/fig/beam.png"), angle, 2.0)
         self.vx = math.cos(math.radians(angle))
         self.vy = -math.sin(math.radians(angle))
         self.rect = self.image.get_rect()
-        self.rect.centerx = tank.x + tank.image.get_width()/2
-        self.rect.centery = tank.y
+        self.rect.centerx = tank.rect.centerx
+        self.rect.centery = tank.rect.y
         self.speed = 10
+
 
 
     def update(self):
@@ -145,19 +147,27 @@ class Beam(pg.sprite.Sprite):
             self.kill()  # Sprite グループからこの Sprite を削除
 
 
-class Obstacle:
+class Obstacle(pg.sprite.Sprite):  # pg.sprite.Sprite を継承する
     def __init__(self, x, y, width, height):
-        '''
-        障害物を生成する
-        '''
-        self.rect = pg.Rect(x, y, width, height)
-        self.created_time = time.time()
+        super().__init__()
+        self.image = pg.Surface((width, height))
+        self.image.fill((126, 126, 126))  # 障害物の色を灰色に設定
+        self.rect = self.image.get_rect(topleft=(x, y))
+        self.durability = 50 # 耐久値を設定
 
     def is_expired(self, duration):
         '''
         障害物が duration 秒経過したかどうかを返す
         '''
         return time.time() - self.created_time > duration
+
+    def hit(self):
+        """
+        障害物がヒットした時に耐久値を減少させる
+        """
+        self.durability -= 1
+        if self.durability <= 0:
+            self.kill()  # 耐久値が0以下になったら障害物を消去
 
 
 class Shield(pg.sprite.Sprite):
@@ -192,8 +202,8 @@ def main():
     screen = pg.display.set_mode((WIDTH, HEIGHT))
     pg.display.set_caption("Spiral Ball Animation")
     clock = pg.time.Clock()
-    bg_img = pg.image.load("ex05/fig/background.png")
-    tank = Tank(300, 500, "ex05/fig/player1.gif")
+    bg_img = pg.image.load("test/fig/background.png")
+    tank = Tank(300, 500, "test/fig/player1.gif")
     beams = Group()
     emys = Group()
     all_sprites = Group()
@@ -206,6 +216,9 @@ def main():
 
     while True:
         screen.blit(bg_img, [0, 0])  # 背景画像を最初に描画
+        pg.font.init()  # フォントの初期化
+        game_over_font = pg.font.Font(None, 74)
+        obstacles = pg.sprite.Group()
         for event in pg.event.get():
             if event.type == pg.QUIT:
                 pg.quit()
@@ -217,23 +230,27 @@ def main():
         if keys[pg.K_d]:
             tank.move_right(10, WIDTH)  # 右に移動
 
+        if event.type == pg.KEYDOWN:
+            if event.key == pg.K_TAB :
+                shields.add(Shield(tank, 100, 300))
+
         if len(emys) < 5:  # emys グループ内の Enemy インスタンスの数が5未満の場合に Enemy を追加
             emys.add(Enemy(all_sprites))
 
 
-        if frame_count % 5 == 0:  # ビーム自動発射
+        if frame_count % 10 == 0:  # ビーム自動発射
             beams.add(Beam(tank, angle=90))
 
         # 障害物を生成
         if time.time() > next_obstacle_time and len(obstacles) < 3:
-            obstacles.append(Obstacle(random.randint(0, WIDTH-100), random.randint(200, 400), 100, 20))
+            obstacle = Obstacle(random.randint(0, WIDTH-100), random.randint(200, 400), 100, 20)
+            obstacles.add(obstacle)
             next_obstacle_time = time.time() + random.randint(1, 3)
 
-        # 障害物を描画
+        # 障害物の更新と描画
         for obstacle in obstacles:
-            pg.draw.rect(screen, (126, 126, 126), obstacle.rect)
-            if obstacle.is_expired(15):  # 15秒後に障害物を消去
-                obstacles.remove(obstacle)
+            obstacle.update()
+        obstacles.draw(screen)  # 障害物の描画
 
         frame_count += 1
         tank.draw(screen)
@@ -241,12 +258,37 @@ def main():
         beams.update()
         emys.update()
         shields.update()
+
+        # シールドと小球の衝突判定
+        pg.sprite.groupcollide(shields, all_sprites, False, True)
+
+        # ビームと小球の衝突判定
+        collisions = pg.sprite.groupcollide(beams, all_sprites, True, True)
+
+        # ビームとエネミーの衝突判定
+        beam_enemy_collisions = pg.sprite.groupcollide(beams, emys, True, True)
+
+        # 障害物と小球の衝突判定
+        for obstacle in obstacles:
+            hits = pg.sprite.spritecollide(obstacle, all_sprites, False)  # 障害物に当たった小球を検出
+            for hit in hits:
+                obstacle.hit()  # 障害物の耐久値を減少させる
+                hit.kill()  # 当たった小球を消去
+
+        # タンクと小球の衝突判定
+        tank_hit_list = pg.sprite.spritecollide(tank, all_sprites, False)
+        if tank_hit_list:
+            print("Game Over")
+            pg.quit()
+            sys.exit()
+
         all_sprites.draw(screen)
         beams.draw(screen)
         emys.draw(screen)
         shields.draw(screen)
         pg.display.flip()
         clock.tick(100)
+
 
 if __name__ == "__main__":
     main()
