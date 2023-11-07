@@ -182,16 +182,16 @@ class Shield(pg.sprite.Sprite):
         pg.draw.circle(self.image, (1, 0, 0), (size, size), size)
         self.image.set_colorkey((0, 0, 0))
         self.rect = self.image.get_rect()
-        self.rect.centerx = self.tank.x + self.tank.image.get_width() / 2
-        self.rect.centery = self.tank.y
+        self.rect.centerx = self.tank.rect.x + self.tank.image.get_width() / 2
+        self.rect.centery = self.tank.rect.y
         self.life = life
 
     def update(self):
         """
         発動してからlifeがゼロになるまで発動し、ゼロになったらkillされる
         """
-        self.rect.centerx = self.tank.x + self.tank.image.get_width() / 2
-        self.rect.centery = self.tank.y
+        self.rect.centerx = self.tank.rect.x + self.tank.image.get_width() / 2
+        self.rect.centery = self.tank.rect.y
         self.life -= 1
         if self.life < 0:
             self.kill()
