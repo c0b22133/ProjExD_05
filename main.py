@@ -216,6 +216,22 @@ class Shield(pg.sprite.Sprite):
             self.kill()
 
 
+class Button:
+    """
+    ボタンを表すクラス
+    """
+    def __init__(self, center_position, text, size=36):
+        self.font = pg.font.Font(None, size)
+        self.text_surf = self.font.render(text, True, pg.Color('white'))
+        self.rect = self.text_surf.get_rect(center=center_position)
+
+    def draw(self, screen):
+        screen.blit(self.text_surf, self.rect)
+
+    def check_click(self, position):
+        return self.rect.collidepoint(position)
+
+
 def main():
     pg.init()
     screen = pg.display.set_mode((WIDTH, HEIGHT))
@@ -237,22 +253,23 @@ def main():
 
     game_over = False  # ゲームオーバーフラグを追加
 
+    restart_button = Button((WIDTH // 2, HEIGHT // 2 + 100), "Restart")
+
     while not game_over:
         screen.blit(bg_img, [0, 0])  # 背景画像を最初に描画
         for event in pg.event.get():
             if event.type == pg.QUIT:
                 pg.quit()
                 sys.exit()
+            if event.type == pg.KEYDOWN:
+                if event.key == pg.K_TAB :
+                    shields.add(Shield(tank, 100, 300))
 
         keys = pg.key.get_pressed()
         if keys[pg.K_a]:
             tank.move_left(10, 0)  # 左に移動
         if keys[pg.K_d]:
             tank.move_right(10, WIDTH)  # 右に移動
-
-        if event.type == pg.KEYDOWN:
-            if event.key == pg.K_TAB :
-                shields.add(Shield(tank, 100, 300))
 
         if len(emys) < 5:  # emys グループ内の Enemy インスタンスの数が5未満の場合に Enemy を追加
             emys.add(Enemy(all_sprites))
@@ -308,20 +325,42 @@ def main():
         pg.display.flip()
         clock.tick(100)
 
-    black_band_height = HEIGHT // 3  # 黒い帯の高さ
+    black_band_height = HEIGHT // 2  # 黒い帯の高さを増やす
     black_band = pg.Surface((WIDTH, black_band_height))
     black_band.fill((0, 0, 0))
     black_band_rect = black_band.get_rect(center=(WIDTH // 2, HEIGHT // 2))
     screen.blit(black_band, black_band_rect)
+
     # Game Over の文字を描画
     font = pg.font.Font(None, 100)
     game_over_text = font.render("Game Over", True, (255, 255, 255))
-    game_over_rect = game_over_text.get_rect(center=(WIDTH // 2, HEIGHT // 2))
+    game_over_rect = game_over_text.get_rect(center=(WIDTH // 2, HEIGHT // 2 - black_band_height // 4))
     screen.blit(game_over_text, game_over_rect)
+
+    # スコアをより小さなサイズで表示
+    score_font = pg.font.Font(None, 36)  # スコアのフォントサイズを下げる
+    score_text = score_font.render(f"Score: {score.score}", True, (255, 255, 255))
+    score_rect = score_text.get_rect(center=(WIDTH // 2, HEIGHT // 2))
+    screen.blit(score_text, score_rect)
+
+    # リスタートボタンを描画
+    restart_button.draw(screen)
+
     pg.display.flip()
-    time.sleep(5)
-    pg.quit()
-    sys.exit()
+
+    # リスタートボタンをクリックするまで待機
+    waiting_for_restart = True
+    while waiting_for_restart:
+        for event in pg.event.get():
+            if event.type == pg.QUIT:
+                pg.quit()
+                sys.exit()
+            if event.type == pg.MOUSEBUTTONDOWN:
+                mouse_pos = event.pos
+                if restart_button.check_click(mouse_pos):
+                    waiting_for_restart = False
+
 
 if __name__ == "__main__":
-    main()
+    while True:
+        main()
