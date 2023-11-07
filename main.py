@@ -235,7 +235,9 @@ def main():
 
     frame_count = 0
 
-    while True:
+    game_over = False  # ゲームオーバーフラグを追加
+
+    while not game_over:
         screen.blit(bg_img, [0, 0])  # 背景画像を最初に描画
         for event in pg.event.get():
             if event.type == pg.QUIT:
@@ -256,7 +258,7 @@ def main():
             emys.add(Enemy(all_sprites))
 
 
-        if frame_count % 10 == 0:  # ビーム自動発射
+        if frame_count % 12 == 0:  # ビーム自動発射
             beams.add(Beam(tank, angle=90))
 
         # 障害物を生成
@@ -296,9 +298,7 @@ def main():
         # タンクと小球の衝突判定
         tank_hit_list = pg.sprite.spritecollide(tank, all_sprites, False)
         if tank_hit_list:
-            print("Game Over")
-            pg.quit()
-            sys.exit()
+            game_over = True
 
         score.update(screen)
         all_sprites.draw(screen)
@@ -308,6 +308,20 @@ def main():
         pg.display.flip()
         clock.tick(100)
 
+    black_band_height = HEIGHT // 3  # 黒い帯の高さ
+    black_band = pg.Surface((WIDTH, black_band_height))
+    black_band.fill((0, 0, 0))
+    black_band_rect = black_band.get_rect(center=(WIDTH // 2, HEIGHT // 2))
+    screen.blit(black_band, black_band_rect)
+    # Game Over の文字を描画
+    font = pg.font.Font(None, 100)
+    game_over_text = font.render("Game Over", True, (255, 255, 255))
+    game_over_rect = game_over_text.get_rect(center=(WIDTH // 2, HEIGHT // 2))
+    screen.blit(game_over_text, game_over_rect)
+    pg.display.flip()
+    time.sleep(5)
+    pg.quit()
+    sys.exit()
 
 if __name__ == "__main__":
     main()
