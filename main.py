@@ -24,7 +24,7 @@ def check_bound(obj: pg.Rect) -> tuple[bool, bool]:
 
 
 class Enemy(pg.sprite.Sprite):
-    imgs = [pg.image.load(f"test/fig/alien{i}.png") for i in range(1, 3)]
+    imgs = [pg.image.load(f"ex05/fig/alien{i}.png") for i in range(1, 3)]
 
     def __init__(self,):
         super().__init__()
@@ -80,7 +80,7 @@ class Beam(pg.sprite.Sprite):
     """
     def __init__(self, tank: Tank, angle: float):
         super().__init__()
-        self.image = pg.transform.rotozoom(pg.image.load(f"test/fig/beam.png"), angle, 2.0)
+        self.image = pg.transform.rotozoom(pg.image.load(f"ex05/fig/beam.png"), angle, 2.0)
         self.vx = math.cos(math.radians(angle))
         self.vy = -math.sin(math.radians(angle))
         self.rect = self.image.get_rect()
@@ -144,8 +144,8 @@ def main():
     pg.display.set_caption("弾幕ゲー")
     screen = pg.display.set_mode((WIDTH, HEIGHT))
     clock  = pg.time.Clock()
-    bg_img = pg.image.load("test/fig/background.png")
-    tank = Tank(300, 500, "test/fig/player1.gif")
+    bg_img = pg.image.load("ex05/fig/background.png")
+    tank = Tank(300, 500, "ex05/fig/player1.gif")
     beams = pg.sprite.Group()
     emys = pg.sprite.Group()
     shield = pg.sprite.Group()
