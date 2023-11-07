@@ -169,6 +169,24 @@ class Obstacle(pg.sprite.Sprite):  # pg.sprite.Sprite を継承する
         if self.durability <= 0:
             self.kill()  # 耐久値が0以下になったら障害物を消去
 
+class Score:
+    """
+    撃ち落とした爆弾、敵機の数をスコアとして表示するクラス
+    """
+    def __init__(self):
+        self.font = pg.font.Font(None, 50)
+        self.color = (0, 0, 255)
+        self.score = 0
+        self.image = self.font.render(f"Score: {self.score}", 0, self.color)
+        self.rect = self.image.get_rect()
+        self.rect.center = 100, HEIGHT-50
+
+    def score_up(self, add):
+        self.score += add
+    
+    def update(self, screen: pg.Surface):
+        self.image = self.font.render(f"Score: {self.score}", 0, self.color)
+        screen.blit(self.image, self.rect)
 
 class Shield(pg.sprite.Sprite):
     """
@@ -208,6 +226,7 @@ def main():
     emys = Group()
     all_sprites = Group()
     shields = Group()
+    score = Score()
     obstacles = []  # 障害物のリスト
 
     next_obstacle_time = time.time() + random.randint(1, 3)  # 障害物を生成する時刻
@@ -266,7 +285,8 @@ def main():
         collisions = pg.sprite.groupcollide(beams, all_sprites, True, True)
 
         # ビームとエネミーの衝突判定
-        beam_enemy_collisions = pg.sprite.groupcollide(beams, emys, True, True)
+        beam_enemy_collisions = pg.sprite.groupcollide(beams, emys, True, True) and score.score_up(1)
+        
 
         # 障害物と小球の衝突判定
         for obstacle in obstacles:
@@ -282,6 +302,7 @@ def main():
             pg.quit()
             sys.exit()
 
+        score.update(screen)
         all_sprites.draw(screen)
         beams.draw(screen)
         emys.draw(screen)
