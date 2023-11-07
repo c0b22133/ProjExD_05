@@ -1,12 +1,18 @@
 import sys
 import pygame as pg
-from pygame.sprite import AbstractGroup
+from pygame.sprite import Group
 import random
 import time
 import math
 
-WIDTH = 600  # タンクの初期 x 座標
-HEIGHT = 600  # タンクの初期 y 座標
+# ウィンドウサイズの定数
+WIDTH = 600
+HEIGHT = 600
+
+# 小球のスピードとサイズの定数
+BALL_SPEED =15
+BALL_SIZE = 15
+BALLS_NUMBER = 12  # 小球の数
 
 
 def check_bound(obj: pg.Rect) -> tuple[bool, bool]:
@@ -23,12 +29,39 @@ def check_bound(obj: pg.Rect) -> tuple[bool, bool]:
     return yoko, tate
 
 
-class Enemy(pg.sprite.Sprite):
-    imgs = [pg.image.load(f"ex05/fig/alien{i}.png") for i in range(1, 3)]
-
-    def __init__(self,):
+# SpiralBall クラス
+class SpiralBall(pg.sprite.Sprite):
+    def __init__(self, center, angle_offset):
         super().__init__()
-        self.image = random.choice(__class__.imgs)
+        self.image = pg.Surface((BALL_SIZE * 2, BALL_SIZE * 2), pg.SRCALPHA)
+        pg.draw.circle(self.image, pg.Color('dodgerblue'), (BALL_SIZE, BALL_SIZE), BALL_SIZE)
+        self.rect = self.image.get_rect(center=center)
+        self.radius = 0
+        self.angle = angle_offset
+        self.center = center
+
+    def update(self):
+        self.radius += BALL_SPEED / 10
+        angular_velocity = BALL_SPEED + self.radius / 50
+        self.angle += math.radians(angular_velocity)
+        self.rect.x = WIDTH // 2 + self.radius * math.cos(self.angle) - WIDTH // 2 + self.center[0]
+        self.rect.y = HEIGHT // 2 + self.radius * math.sin(self.angle) - HEIGHT // 2 + self.center[1]
+        # if not (0 <= self.rect.x <= WIDTH and 0 <= self.rect.y <= HEIGHT):
+        #     self.kill()
+
+# SpiralBall を生成する関数
+def add_spiral_balls(group, center):
+    for i in range(BALLS_NUMBER):
+        angle_offset = i * (360 / BALLS_NUMBER)
+        group.add(SpiralBall(center, math.radians(angle_offset)))
+
+# Enemy クラス
+class Enemy(pg.sprite.Sprite):
+    imgs = [pg.image.load(f"test/fig/alien{i}.png") for i in range(1, 3)]
+
+    def __init__(self, all_sprites_group):
+        super().__init__()
+        self.image = random.choice(Enemy.imgs)
         self.rect = self.image.get_rect()
         self.rect.center = random.randint(0, WIDTH), 0
         self.vy = +6
@@ -36,20 +69,34 @@ class Enemy(pg.sprite.Sprite):
         self.state = "down"
         self.interaval = random.randint(50, 300)
         self.created_time = time.time()
+        self.all_sprites_group = all_sprites_group
+        self.balls = pg.sprite.Group()
 
     def update(self):
-        if self.rect.centery > self.bound:
+        if self.rect.centery > self.bound and self.state == "down":
             self.vy = 0
             self.state = "stop"
+            self.add_spiral_balls()  # 小球を生成する関数を呼び出す
         self.rect.centery += self.vy
-        if self.is_expired(5):
+        if time.time() - self.created_time > 5:
             self.reset()
-    def is_expired(self, duration):
-        return time.time() - self.created_time > duration
+
+    def add_spiral_balls(self):
+        # このエネミーの中心から小球を生成する
+        for i in range(BALLS_NUMBER):
+            angle_offset = i * (360 / BALLS_NUMBER)
+            ball = SpiralBall(self.rect.center, math.radians(angle_offset))
+            self.balls.add(ball)  # 小球を自身のグループに追加
+            self.all_sprites_group.add(ball)  # 画面に表示するための全体のグループにも追加
+
     def reset(self):
+        for ball in self.balls:
+            ball.kill()
+        self.balls.empty()
         self.rect.center = random.randint(0, WIDTH), 0
         self.vy = +6
         self.bound = random.randint(50, 200)
+        self.state = "down"
         self.created_time = time.time()
 
 
@@ -80,7 +127,7 @@ class Beam(pg.sprite.Sprite):
     """
     def __init__(self, tank: Tank, angle: float):
         super().__init__()
-        self.image = pg.transform.rotozoom(pg.image.load(f"ex05/fig/beam.png"), angle, 2.0)
+        self.image = pg.transform.rotozoom(pg.image.load(f"test/fig/beam.png"), angle, 2.0)
         self.vx = math.cos(math.radians(angle))
         self.vy = -math.sin(math.radians(angle))
         self.rect = self.image.get_rect()
@@ -141,70 +188,65 @@ class Shield(pg.sprite.Sprite):
 
 
 def main():
-    pg.display.set_caption("弾幕ゲー")
+    pg.init()
     screen = pg.display.set_mode((WIDTH, HEIGHT))
-    clock  = pg.time.Clock()
-    bg_img = pg.image.load("ex05/fig/background.png")
-    tank = Tank(300, 500, "ex05/fig/player1.gif")
-    beams = pg.sprite.Group()
-    emys = pg.sprite.Group()
-    shield = pg.sprite.Group()
+    pg.display.set_caption("Spiral Ball Animation")
+    clock = pg.time.Clock()
+    bg_img = pg.image.load("test/fig/background.png")
+    tank = Tank(300, 500, "test/fig/player1.gif")
+    beams = Group()
+    emys = Group()
+    all_sprites = Group()
+    shields = Group()
+    obstacles = []  # 障害物のリスト
 
-    obstacles = [] # 障害物のリスト
-    next_obstacle_time = time.time() + random.randint(1, 3) # 障害物を生成する時刻
+    next_obstacle_time = time.time() + random.randint(1, 3)  # 障害物を生成する時刻
 
-    tmr = 0
-    count = 0
     frame_count = 0
 
     while True:
         screen.blit(bg_img, [0, 0])  # 背景画像を最初に描画
         for event in pg.event.get():
             if event.type == pg.QUIT:
-                return 0
+                pg.quit()
+                sys.exit()
 
         keys = pg.key.get_pressed()
         if keys[pg.K_a]:
             tank.move_left(10, 0)  # 左に移動
         if keys[pg.K_d]:
             tank.move_right(10, WIDTH)  # 右に移動
-        if event.type == pg.KEYDOWN:
-            if event.key == pg.K_TAB :
-                shield.add(Shield(tank, 100, 300))
 
-        if count < 5:
-            emys.add(Enemy())
+        if len(emys) < 5:  # emys グループ内の Enemy インスタンスの数が5未満の場合に Enemy を追加
+            emys.add(Enemy(all_sprites))
 
-        if frame_count % 10 == 0:  # ビーム自動発射
+
+        if frame_count % 5 == 0:  # ビーム自動発射
             beams.add(Beam(tank, angle=90))
 
         # 障害物を生成
         if time.time() > next_obstacle_time and len(obstacles) < 3:
-            obstacles.append(Obstacle(random.randint(0, 600), random.randint(200, 400), 100, 20))
+            obstacles.append(Obstacle(random.randint(0, WIDTH-100), random.randint(200, 400), 100, 20))
             next_obstacle_time = time.time() + random.randint(1, 3)
 
         # 障害物を描画
-        for obstacle in obstacles[:]:
+        for obstacle in obstacles:
             pg.draw.rect(screen, (126, 126, 126), obstacle.rect)
-            if obstacle.is_expired(15):
+            if obstacle.is_expired(15):  # 15秒後に障害物を消去
                 obstacles.remove(obstacle)
 
-        tank.draw(screen)
-        beams.update()
-        beams.draw(screen)
-        emys.update()
-        emys.draw(screen)
-        shield.update()
-        shield.draw(screen)
-        pg.display.update()
-        count += 1
-        tmr += 1
         frame_count += 1
+        tank.draw(screen)
+        all_sprites.update()
+        beams.update()
+        emys.update()
+        shields.update()
+        all_sprites.draw(screen)
+        beams.draw(screen)
+        emys.draw(screen)
+        shields.draw(screen)
+        pg.display.flip()
         clock.tick(100)
 
-
 if __name__ == "__main__":
-    pg.init()
     main()
-    pg.quit()
-    sys.exit()
